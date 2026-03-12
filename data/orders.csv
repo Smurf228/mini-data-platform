@@ -1,0 +1,4 @@
+order_id,customer_id,product_id,quantity
+101,1,1,1
+102,2,2,2
+103,1,3,1
