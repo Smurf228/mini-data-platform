@@ -1,0 +1,21 @@
+{
+ "name": "pg-customers-connector",
+ "config": {
+  "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+  "tasks.max": "1",
+
+  "database.hostname": "postgres",
+  "database.port": "5432",
+  "database.user": "app",
+  "database.password": "app",
+  "database.dbname": "appdb",
+
+  "plugin.name": "pgoutput",
+
+  "topic.prefix": "pg",
+  "schema.include.list": "demo",
+  "table.include.list": "demo.customers",
+
+  "slot.name": "pg_slot_customers"
+ }
+}
