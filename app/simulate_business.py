@@ -1,12 +1,7 @@
 import psycopg2
 import pandas as pd
 
-conn = psycopg2.connect(
-    host="localhost",
-    database="appdb",
-    user="app",
-    password="app"
-)
+conn = psycopg2.connect(host="localhost", database="appdb", user="app", password="app")
 
 cur = conn.cursor()
 
@@ -45,21 +40,13 @@ orders = pd.read_csv("data/orders.csv")
 for _, row in customers.iterrows():
     cur.execute(
         "INSERT INTO customers VALUES (%s,%s,%s)",
-        (
-            int(row["customer_id"]),
-            str(row["name"]),
-            str(row["email"])
-        )
+        (int(row["customer_id"]), str(row["name"]), str(row["email"])),
     )
 
 for _, row in products.iterrows():
     cur.execute(
         "INSERT INTO products VALUES (%s,%s,%s)",
-        (
-            int(row["product_id"]),
-            str(row["name"]),
-            float(row["price"])
-        )
+        (int(row["product_id"]), str(row["name"]), float(row["price"])),
     )
 
 for _, row in orders.iterrows():
@@ -69,8 +56,8 @@ for _, row in orders.iterrows():
             int(row["order_id"]),
             int(row["customer_id"]),
             int(row["product_id"]),
-            int(row["quantity"])
-        )
+            int(row["quantity"]),
+        ),
     )
 
 conn.commit()
