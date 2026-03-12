@@ -2,9 +2,9 @@ import psycopg2
 import pandas as pd
 
 conn = psycopg2.connect(
-    host="localhost", 
-    database="appdb", 
-    user="app", 
+    host="localhost",
+    database="appdb",
+    user="app",
     password="app")
 
 cur = conn.cursor()
