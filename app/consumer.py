@@ -5,7 +5,7 @@ consumer = KafkaConsumer(
     "pg.demo.customers",
     bootstrap_servers="localhost:29092",
     auto_offset_reset="earliest",
-    group_id="cdc-consumer-v2"
+    group_id="cdc-consumer-v2",
 )
 
 print("Listening for CDC events...")
