@@ -8,13 +8,19 @@ MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minio")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "miniodata123")
 DELTA_PATH = os.getenv("DELTA_PATH", "s3a://datalake/delta/customers_cdc")
-CHECKPOINT_PATH = os.getenv("CHECKPOINT_PATH", "s3a://datalake/checkpoints/customers_cdc")
+CHECKPOINT_PATH = os.getenv(
+    "CHECKPOINT_PATH",
+    "s3a://datalake/checkpoints/customers_cdc",
+)
 
 spark = (
     SparkSession.builder.appName("KafkaSparkStreaming")
     .master("spark://spark-master:7077")
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
-    .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+    .config(
+        "spark.sql.catalog.spark_catalog",
+        "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+    )
     .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
     .config("spark.hadoop.fs.s3a.endpoint", MINIO_ENDPOINT)
     .config("spark.hadoop.fs.s3a.access.key", MINIO_ACCESS_KEY)

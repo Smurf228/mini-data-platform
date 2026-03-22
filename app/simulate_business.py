@@ -46,15 +46,26 @@ def existing_columns(cursor, schema: str, table: str) -> list[str]:
     return [row[0] for row in cursor.fetchall()]
 
 
-def create_table(cursor, schema: str, table: str, dataframe: pd.DataFrame, primary_key: str | None) -> None:
+def create_table(
+    cursor,
+    schema: str,
+    table: str,
+    dataframe: pd.DataFrame,
+    primary_key: str | None,
+) -> None:
     columns_sql = []
     for column in dataframe.columns:
         columns_sql.append(
-            sql.SQL("{} {}").format(sql.Identifier(column), sql.SQL(infer_postgres_type(dataframe[column])))
+            sql.SQL("{} {}").format(
+                sql.Identifier(column),
+                sql.SQL(infer_postgres_type(dataframe[column])),
+            )
         )
 
     if primary_key:
-        columns_sql.append(sql.SQL("PRIMARY KEY ({})").format(sql.Identifier(primary_key)))
+        columns_sql.append(
+            sql.SQL("PRIMARY KEY ({})").format(sql.Identifier(primary_key))
+        )
 
     create_sql = sql.SQL("CREATE TABLE IF NOT EXISTS {}.{} ({})").format(
         sql.Identifier(schema),
@@ -64,7 +75,13 @@ def create_table(cursor, schema: str, table: str, dataframe: pd.DataFrame, prima
     cursor.execute(create_sql)
 
 
-def upsert_dataframe(cursor, schema: str, table: str, dataframe: pd.DataFrame, primary_key: str | None) -> None:
+def upsert_dataframe(
+    cursor,
+    schema: str,
+    table: str,
+    dataframe: pd.DataFrame,
+    primary_key: str | None,
+) -> None:
     columns = list(dataframe.columns)
     values = [tuple(row) for row in dataframe.itertuples(index=False, name=None)]
 
@@ -77,15 +94,22 @@ def upsert_dataframe(cursor, schema: str, table: str, dataframe: pd.DataFrame, p
     if primary_key:
         update_columns = [col for col in columns if col != primary_key]
         if update_columns:
-            upsert_query = base_query + sql.SQL(" ON CONFLICT ({}) DO UPDATE SET {} ").format(
+            upsert_query = base_query + sql.SQL(
+                " ON CONFLICT ({}) DO UPDATE SET {} "
+            ).format(
                 sql.Identifier(primary_key),
                 sql.SQL(", ").join(
-                    sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
+                    sql.SQL("{} = EXCLUDED.{}").format(
+                        sql.Identifier(col),
+                        sql.Identifier(col),
+                    )
                     for col in update_columns
                 ),
             )
         else:
-            upsert_query = base_query + sql.SQL(" ON CONFLICT ({}) DO NOTHING").format(sql.Identifier(primary_key))
+            upsert_query = base_query + sql.SQL(
+                " ON CONFLICT ({}) DO NOTHING"
+            ).format(sql.Identifier(primary_key))
     else:
         upsert_query = base_query
 
@@ -107,7 +131,11 @@ def main() -> None:
     cur = conn.cursor()
 
     try:
-        cur.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {} ").format(sql.Identifier(SCHEMA)))
+        cur.execute(
+            sql.SQL("CREATE SCHEMA IF NOT EXISTS {} ").format(
+                sql.Identifier(SCHEMA)
+            )
+        )
 
         for csv_file in csv_files:
             table_name = csv_file.stem
