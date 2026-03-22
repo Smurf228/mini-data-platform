@@ -6,7 +6,6 @@ import psycopg2
 from psycopg2 import sql
 from psycopg2.extras import execute_values
 
-
 SCHEMA = "demo"
 DATA_DIR = Path("data")
 DB_HOST = os.getenv("DB_HOST", "localhost")
@@ -107,9 +106,9 @@ def upsert_dataframe(
                 ),
             )
         else:
-            upsert_query = base_query + sql.SQL(
-                " ON CONFLICT ({}) DO NOTHING"
-            ).format(sql.Identifier(primary_key))
+            upsert_query = base_query + sql.SQL(" ON CONFLICT ({}) DO NOTHING").format(
+                sql.Identifier(primary_key)
+            )
     else:
         upsert_query = base_query
 
@@ -132,9 +131,7 @@ def main() -> None:
 
     try:
         cur.execute(
-            sql.SQL("CREATE SCHEMA IF NOT EXISTS {} ").format(
-                sql.Identifier(SCHEMA)
-            )
+            sql.SQL("CREATE SCHEMA IF NOT EXISTS {} ").format(sql.Identifier(SCHEMA))
         )
 
         for csv_file in csv_files:
