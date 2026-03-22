@@ -7,7 +7,7 @@
   "database.hostname": "postgres",
   "database.port": "5432",
   "database.user": "app",
-  "database.password": "app",
+  "database.password": "root",
   "database.dbname": "appdb",
 
   "plugin.name": "pgoutput",
