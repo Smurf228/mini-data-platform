@@ -53,7 +53,12 @@ async function listParquetObjects() {
     const stream = minioClient.listObjectsV2(MINIO_BUCKET, DELTA_PREFIX, true);
 
     stream.on("data", (item) => {
-      if (item.name && item.name.endsWith(".parquet")) {
+      // Keep only Delta data files, skip transaction log checkpoints.
+      if (
+        item.name &&
+        item.name.endsWith(".parquet") &&
+        !item.name.includes("/_delta_log/")
+      ) {
         objects.push(item);
       }
     });
@@ -85,12 +90,23 @@ async function readRowsFromObject(objectName, limit) {
       const row = await cursor.next();
       if (!row) break;
 
-      rows.push({
+      const normalized = {
         customer_id: row.customer_id ?? null,
         name: row.name ?? null,
         email: row.email ?? null,
         ingested_at: row.ingested_at ? String(row.ingested_at) : null
-      });
+      };
+
+      // Ignore rows from files that do not contain business payload columns.
+      if (
+        normalized.customer_id == null &&
+        normalized.name == null &&
+        normalized.email == null
+      ) {
+        continue;
+      }
+
+      rows.push(normalized);
     }
   } finally {
     if (reader) await reader.close();
