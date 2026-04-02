@@ -30,6 +30,7 @@ Not implemented yet:
 6. Spark Worker UI: `http://localhost:8082`
 7. MinIO API: `http://localhost:9000`
 8. MinIO Console: `http://localhost:9001`
+9. Platform Dashboard: `http://localhost:8090`
 
 ## Quick Start
 
@@ -59,6 +60,12 @@ What this script does:
 4. Waits until connector task is `RUNNING`.
 5. Loads CSV data to PostgreSQL.
 6. Optional smoke test for CDC message flow.
+
+Open unified dashboard:
+
+```text
+http://localhost:8090
+```
 
 ### 1) Start containers
 

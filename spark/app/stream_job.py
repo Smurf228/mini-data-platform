@@ -12,6 +12,9 @@ CHECKPOINT_PATH = os.getenv(
     "CHECKPOINT_PATH",
     "s3a://datalake/checkpoints/customers_cdc",
 )
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
+KAFKA_TOPIC_PATTERN = os.getenv("KAFKA_TOPIC_PATTERN", r"pg\.demo\.customers")
+STARTING_OFFSETS = os.getenv("KAFKA_STARTING_OFFSETS", "latest")
 
 spark = (
     SparkSession.builder.appName("KafkaSparkStreaming")
@@ -34,9 +37,11 @@ spark.sparkContext.setLogLevel("WARN")
 
 df = (
     spark.readStream.format("kafka")
-    .option("kafka.bootstrap.servers", "kafka:9092")
-    .option("subscribe", "pg.demo.customers")
-    .option("startingOffsets", "latest")
+    .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS)
+    # Pattern subscription avoids startup failure if CDC topic appears later.
+    .option("subscribePattern", KAFKA_TOPIC_PATTERN)
+    .option("startingOffsets", STARTING_OFFSETS)
+    .option("failOnDataLoss", "false")
     .load()
 )
 
