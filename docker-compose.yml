@@ -79,6 +79,22 @@ services:
     networks:
       - platform_net
 
+  dashboard:
+    image: nginx:alpine
+    container_name: dashboard
+    depends_on:
+      - kafka-ui
+      - spark-master
+      - minio
+      - connect
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    volumes:
+      - ./dashboard/index.html:/usr/share/nginx/html/index.html:ro
+    networks:
+      - platform_net
+
   minio:
     image: minio/minio:latest
     container_name: minio
@@ -140,6 +156,27 @@ services:
       bash -lc "/opt/spark/bin/spark-class
       org.apache.spark.deploy.worker.Worker
       spark://spark-master:7077 --webui-port 8081"  
+    networks:
+      - platform_net
+
+  spark-app:
+    image: spark:3.5.1-python3
+    container_name: spark-app
+    depends_on:
+      - spark-master
+      - spark-worker
+      - kafka
+      - minio
+    restart: unless-stopped
+    volumes:
+      - ./spark/app:/opt/spark-app
+    command: >
+      bash -lc "mkdir -p /tmp/.ivy && /opt/spark/bin/spark-submit
+      --master spark://spark-master:7077
+      --total-executor-cores 2
+      --conf spark.jars.ivy=/tmp/.ivy
+      --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1,io.delta:delta-spark_2.12:3.2.0,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262
+      /opt/spark-app/stream_job.py"
     networks:
       - platform_net
   
