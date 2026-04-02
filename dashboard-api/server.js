@@ -2,6 +2,12 @@ const express = require("express");
 const cors = require("cors");
 const { Kafka } = require("kafkajs");
 const { Pool } = require("pg");
+const fs = require("fs/promises");
+const os = require("os");
+const path = require("path");
+const crypto = require("crypto");
+const Minio = require("minio");
+const parquet = require("parquetjs-lite");
 
 const app = express();
 const PORT = process.env.PORT || 8091;
@@ -9,6 +15,12 @@ const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || "kafka:9092").split(",");
 const DEFAULT_TOPIC = process.env.KAFKA_TOPIC || "pg.demo.customers";
 const DEFAULT_GROUP = process.env.KAFKA_GROUP || "cdc-consumer-live";
 const SPARK_MASTER_API = process.env.SPARK_MASTER_API || "http://spark-master:8080/json";
+const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || "minio";
+const MINIO_PORT = Number(process.env.MINIO_PORT || 9000);
+const MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY || "minio";
+const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || "miniodata123";
+const MINIO_BUCKET = process.env.MINIO_BUCKET || "datalake";
+const DELTA_PREFIX = process.env.DELTA_PREFIX || "delta/customers_cdc";
 
 const dbPool = new Pool({
   host: process.env.DB_HOST || "postgres",
@@ -17,6 +29,76 @@ const dbPool = new Pool({
   user: process.env.DB_USER || "app",
   password: process.env.DB_PASSWORD || "root"
 });
+
+const minioClient = new Minio.Client({
+  endPoint: MINIO_ENDPOINT,
+  port: MINIO_PORT,
+  useSSL: false,
+  accessKey: MINIO_ACCESS_KEY,
+  secretKey: MINIO_SECRET_KEY
+});
+
+function streamToBuffer(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on("data", (chunk) => chunks.push(chunk));
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+    stream.on("error", reject);
+  });
+}
+
+async function listParquetObjects() {
+  return new Promise((resolve, reject) => {
+    const objects = [];
+    const stream = minioClient.listObjectsV2(MINIO_BUCKET, DELTA_PREFIX, true);
+
+    stream.on("data", (item) => {
+      if (item.name && item.name.endsWith(".parquet")) {
+        objects.push(item);
+      }
+    });
+    stream.on("error", reject);
+    stream.on("end", () => {
+      objects.sort(
+        (a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
+      );
+      resolve(objects);
+    });
+  });
+}
+
+async function readRowsFromObject(objectName, limit) {
+  const objectStream = await minioClient.getObject(MINIO_BUCKET, objectName);
+  const content = await streamToBuffer(objectStream);
+  const tempPath = path.join(os.tmpdir(), `delta-${crypto.randomUUID()}.parquet`);
+
+  await fs.writeFile(tempPath, content);
+
+  const rows = [];
+  let reader;
+
+  try {
+    reader = await parquet.ParquetReader.openFile(tempPath);
+    const cursor = reader.getCursor();
+
+    while (rows.length < limit) {
+      const row = await cursor.next();
+      if (!row) break;
+
+      rows.push({
+        customer_id: row.customer_id ?? null,
+        name: row.name ?? null,
+        email: row.email ?? null,
+        ingested_at: row.ingested_at ? String(row.ingested_at) : null
+      });
+    }
+  } finally {
+    if (reader) await reader.close();
+    await fs.unlink(tempPath).catch(() => {});
+  }
+
+  return rows;
+}
 
 app.use(cors());
 
@@ -195,6 +277,45 @@ app.post("/api/generate-data", async (_req, res) => {
   } catch (error) {
     res.status(500).json({
       error: "Failed to insert generated data",
+      details: error.message
+    });
+  }
+});
+
+app.get("/api/delta-preview", async (req, res) => {
+  const limit = Math.min(Number(req.query.limit || 20), 100);
+
+  try {
+    const objects = await listParquetObjects();
+    if (!objects.length) {
+      return res.json({
+        generatedAt: new Date().toISOString(),
+        rowCount: 0,
+        rows: []
+      });
+    }
+
+    const rows = [];
+    for (const object of objects.slice(0, 4)) {
+      const partRows = await readRowsFromObject(object.name, limit - rows.length);
+      rows.push(...partRows);
+      if (rows.length >= limit) break;
+    }
+
+    rows.sort((a, b) => {
+      const left = a.ingested_at ? Date.parse(a.ingested_at) : 0;
+      const right = b.ingested_at ? Date.parse(b.ingested_at) : 0;
+      return right - left;
+    });
+
+    return res.json({
+      generatedAt: new Date().toISOString(),
+      rowCount: rows.length,
+      rows: rows.slice(0, limit)
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "Failed to preview Delta rows",
       details: error.message
     });
   }
