@@ -3,17 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mini Data Platform Dashboard</title>
+  <title>Mini Data Platform Control Room</title>
   <style>
     :root {
-      --bg-1: #0b132b;
-      --bg-2: #1c2541;
-      --accent: #5bc0be;
-      --accent-2: #f4d35e;
-      --text: #f8f9fb;
-      --muted: #b6bfd3;
-      --card: rgba(255, 255, 255, 0.07);
-      --border: rgba(255, 255, 255, 0.14);
+      --bg-a: #0f172a;
+      --bg-b: #12263f;
+      --bg-c: #173b4a;
+      --card: rgba(9, 16, 31, 0.72);
+      --border: rgba(148, 163, 184, 0.25);
+      --text: #edf2f7;
+      --muted: #9fb0c4;
+      --ok: #22c55e;
+      --bad: #ef4444;
+      --warn: #f59e0b;
+      --cyan: #22d3ee;
+      --rose: #fb7185;
+      --radius: 14px;
     }
 
     * {
@@ -26,175 +31,661 @@
       color: var(--text);
       min-height: 100vh;
       background:
-        radial-gradient(circle at 15% 20%, rgba(91, 192, 190, 0.2), transparent 35%),
-        radial-gradient(circle at 85% 10%, rgba(244, 211, 94, 0.18), transparent 30%),
-        linear-gradient(135deg, var(--bg-1), var(--bg-2));
-      padding: 28px;
+        radial-gradient(circle at 8% 5%, rgba(34, 211, 238, 0.16), transparent 25%),
+        radial-gradient(circle at 92% 3%, rgba(251, 113, 133, 0.14), transparent 24%),
+        linear-gradient(140deg, var(--bg-a), var(--bg-b) 45%, var(--bg-c));
+      padding: 22px;
     }
 
     .container {
-      max-width: 1100px;
+      max-width: 1300px;
       margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(17, 24, 39, 0.7), rgba(2, 132, 199, 0.18));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.26);
     }
 
     h1 {
-      margin: 0 0 8px;
-      letter-spacing: 0.5px;
-      font-size: clamp(1.8rem, 2.8vw, 2.5rem);
+      margin: 0;
+      font-size: clamp(1.5rem, 2.8vw, 2.3rem);
+      letter-spacing: .4px;
     }
 
     .subtitle {
+      margin: 5px 0 0;
       color: var(--muted);
-      margin: 0 0 24px;
-      font-size: 1rem;
+      font-size: .96rem;
     }
 
-    .flow {
+    .hero-meta {
+      text-align: right;
+      color: var(--muted);
+      font-size: .9rem;
+      line-height: 1.35;
+    }
+
+    .grid-top {
       display: grid;
-      grid-template-columns: repeat(5, minmax(110px, 1fr));
-      gap: 12px;
-      margin-bottom: 26px;
+      gap: 14px;
+      grid-template-columns: 1.4fr 1fr 1fr;
     }
 
-    .node {
+    .panel {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: var(--radius);
       padding: 14px;
-      text-align: center;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(5px);
     }
 
-    .arrow {
+    .panel-title {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    .status-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .status-card {
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 12px;
+      background: rgba(2, 6, 23, 0.55);
+      padding: 10px;
+      transition: transform .18s ease;
+    }
+
+    .status-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .95rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--warn);
+      box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.17);
+      animation: pulse 1.8s infinite;
+      flex: 0 0 auto;
+    }
+
+    .dot.ok {
+      background: var(--ok);
+      box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.16);
+    }
+
+    .dot.bad {
+      background: var(--bad);
+      box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.17);
+    }
+
+    .status-meta {
+      color: var(--muted);
+      font-size: .82rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .metric {
+      display: grid;
+      gap: 8px;
+    }
+
+    .metric-box {
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.26);
+      background: linear-gradient(180deg, rgba(12, 23, 42, 0.9), rgba(7, 13, 29, 0.8));
+      padding: 12px;
+    }
+
+    .metric-value {
+      font-size: clamp(1.5rem, 2.5vw, 2rem);
+      font-weight: 800;
+      margin: 4px 0;
+      color: #f8fafc;
+    }
+
+    .metric-sub {
+      color: var(--muted);
+      font-size: .87rem;
+    }
+
+    .job-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(3, minmax(70px, 1fr));
+      margin-bottom: 10px;
+    }
+
+    .job-item {
+      border: 1px solid rgba(148, 163, 184, 0.26);
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.64);
+      padding: 8px;
       text-align: center;
-      color: var(--accent-2);
-      font-weight: bold;
-      align-self: center;
-      font-size: 1.1rem;
+    }
+
+    .job-label {
+      color: var(--muted);
+      font-size: .74rem;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    .job-value {
+      margin-top: 2px;
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+
+    .job-list {
+      margin: 0;
+      padding-left: 16px;
+      color: #dbeafe;
+      font-size: .84rem;
+      min-height: 42px;
     }
 
     .links {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-      margin-bottom: 22px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 9px;
     }
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      transition: transform .15s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-3px);
-    }
-
-    .card h3 {
-      margin: 0 0 8px;
-      font-size: 1.05rem;
-    }
-
-    .card p {
-      margin: 0 0 10px;
-      color: var(--muted);
-      font-size: .92rem;
-    }
-
-    a {
-      color: var(--accent);
+    .link-pill {
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      color: #ccfbff;
+      border-radius: 999px;
+      padding: 6px 11px;
       text-decoration: none;
-      font-weight: 600;
+      font-size: .85rem;
+      background: rgba(34, 211, 238, 0.09);
     }
 
-    a:hover {
-      text-decoration: underline;
+    .link-pill:hover {
+      background: rgba(34, 211, 238, 0.18);
     }
 
-    .note {
-      background: rgba(91, 192, 190, 0.12);
-      border: 1px solid rgba(91, 192, 190, 0.35);
+    .services-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+
+    .service-card {
+      border: 1px solid rgba(148, 163, 184, 0.28);
       border-radius: 12px;
-      padding: 14px;
-      color: #d9fffd;
-      line-height: 1.45;
+      background: rgba(2, 6, 23, 0.58);
+      padding: 11px;
+      display: grid;
+      gap: 8px;
     }
 
-    code {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 6px;
-      padding: 2px 6px;
-      font-family: Consolas, monospace;
+    .service-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
     }
 
-    @media (max-width: 900px) {
-      .flow {
+    .service-name {
+      font-weight: 700;
+      font-size: .94rem;
+    }
+
+    .service-badge {
+      font-size: .72rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: #cbd5e1;
+      background: rgba(30, 41, 59, 0.7);
+    }
+
+    .service-badge.ok {
+      color: #bbf7d0;
+      border-color: rgba(34, 197, 94, 0.5);
+      background: rgba(22, 101, 52, 0.32);
+    }
+
+    .service-badge.bad {
+      color: #fecaca;
+      border-color: rgba(239, 68, 68, 0.5);
+      background: rgba(127, 29, 29, 0.34);
+    }
+
+    .service-desc {
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.35;
+      min-height: 34px;
+    }
+
+    .service-open {
+      text-decoration: none;
+      text-align: center;
+      border-radius: 9px;
+      border: 1px solid rgba(34, 211, 238, 0.38);
+      color: #cffafe;
+      background: rgba(8, 47, 73, 0.45);
+      padding: 7px 9px;
+      font-size: .83rem;
+      font-weight: 700;
+    }
+
+    .service-open:hover {
+      background: rgba(14, 116, 144, 0.5);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .btn-generate {
+      border: 1px solid rgba(34, 197, 94, 0.5);
+      color: #dcfce7;
+      background: linear-gradient(180deg, rgba(22, 163, 74, 0.42), rgba(22, 101, 52, 0.5));
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 700;
+      font-size: .86rem;
+      cursor: pointer;
+    }
+
+    .btn-generate:disabled {
+      opacity: .7;
+      cursor: wait;
+    }
+
+    .generate-result {
+      margin-top: 9px;
+      color: #e2e8f0;
+      font-size: .84rem;
+      min-height: 20px;
+    }
+
+    .generate-result.ok {
+      color: #86efac;
+    }
+
+    .generate-result.err {
+      color: #fca5a5;
+    }
+
+    .embed-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: .83rem;
+      border-top: 1px dashed rgba(148, 163, 184, 0.3);
+      padding-top: 8px;
+    }
+
+    .pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      color: #dbeafe;
+      font-size: .87rem;
+      margin-top: 8px;
+    }
+
+    .chip {
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: rgba(15, 23, 42, 0.72);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: .85; }
+      70% { transform: scale(1.18); opacity: .65; }
+      100% { transform: scale(1); opacity: .85; }
+    }
+
+    @media (max-width: 1000px) {
+      .grid-top {
         grid-template-columns: 1fr;
       }
 
-      .arrow {
-        transform: rotate(90deg);
+      .hero-meta {
+        text-align: left;
       }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Mini Data Platform</h1>
-    <p class="subtitle">Live map of your CDC pipeline and quick entry points to each UI.</p>
-
-    <section class="flow" aria-label="Pipeline flow">
-      <div class="node">PostgreSQL</div>
-      <div class="arrow">--&gt;</div>
-      <div class="node">Debezium + Kafka Connect</div>
-      <div class="arrow">--&gt;</div>
-      <div class="node">Kafka</div>
-      <div class="arrow">--&gt;</div>
-      <div class="node">Spark Streaming</div>
-      <div class="arrow">--&gt;</div>
-      <div class="node">MinIO Delta Lake</div>
+    <section class="hero">
+      <div>
+        <h1>Mini Data Platform Control Room</h1>
+        <p class="subtitle">Live health, Kafka lag, and direct one-click access to each platform UI.</p>
+        <div class="pipeline">
+          <span class="chip">Postgres</span>
+          <span>-></span>
+          <span class="chip">Debezium / Connect</span>
+          <span>-></span>
+          <span class="chip">Kafka</span>
+          <span>-></span>
+          <span class="chip">Spark Streaming</span>
+          <span>-></span>
+          <span class="chip">MinIO Delta</span>
+        </div>
+      </div>
+      <div class="hero-meta">
+        <div>Refresh every 8s</div>
+        <div id="lastUpdated">Last update: --</div>
+      </div>
     </section>
 
-    <section class="links" aria-label="Service links">
-      <article class="card">
-        <h3>Kafka UI</h3>
-        <p>Browse topics and inspect CDC events.</p>
-        <a href="http://localhost:8080" target="_blank" rel="noreferrer">Open Kafka UI</a>
+    <section class="grid-top">
+      <article class="panel">
+        <h2 class="panel-title">Service Live Status</h2>
+        <div class="status-grid" id="statusGrid"></div>
       </article>
 
-      <article class="card">
-        <h3>Spark Master UI</h3>
-        <p>Check apps, executors, and streaming jobs.</p>
-        <a href="http://localhost:8081" target="_blank" rel="noreferrer">Open Spark Master UI</a>
+      <article class="panel metric">
+        <h2 class="panel-title">Kafka Consumer Lag</h2>
+        <div class="metric-box">
+          <div class="metric-sub">Topic</div>
+          <div id="lagTopic">pg.demo.customers</div>
+          <div class="metric-sub" style="margin-top:8px">Group</div>
+          <div id="lagGroup">cdc-consumer-live</div>
+          <div class="metric-sub" style="margin-top:8px">Total Lag</div>
+          <div class="metric-value" id="lagValue">--</div>
+          <div class="metric-sub" id="lagState">Waiting for API...</div>
+        </div>
+        <div class="links">
+          <a class="link-pill" href="http://localhost:8080" target="_blank" rel="noreferrer">Open Kafka UI</a>
+          <a class="link-pill" href="http://localhost:8083/connectors" target="_blank" rel="noreferrer">Open Connect API</a>
+          <a class="link-pill" href="http://localhost:8091/api/kafka-lag" target="_blank" rel="noreferrer">Raw Lag JSON</a>
+        </div>
+        <div class="actions">
+          <button class="btn-generate" id="generateBtn" type="button">Generate Data</button>
+        </div>
+        <div class="generate-result" id="generateResult"></div>
       </article>
 
-      <article class="card">
-        <h3>Spark Worker UI</h3>
-        <p>Inspect worker resources and active tasks.</p>
-        <a href="http://localhost:8082" target="_blank" rel="noreferrer">Open Spark Worker UI</a>
-      </article>
-
-      <article class="card">
-        <h3>MinIO Console</h3>
-        <p>See Delta files in datalake bucket.</p>
-        <a href="http://localhost:9001" target="_blank" rel="noreferrer">Open MinIO UI</a>
-      </article>
-
-      <article class="card">
-        <h3>Kafka Connect REST</h3>
-        <p>Validate connector status and configs.</p>
-        <a href="http://localhost:8083/connectors" target="_blank" rel="noreferrer">Open Connect API</a>
+      <article class="panel metric">
+        <h2 class="panel-title">Spark Jobs Status</h2>
+        <div class="job-grid">
+          <div class="job-item">
+            <div class="job-label">Active</div>
+            <div class="job-value" id="sparkActive">--</div>
+          </div>
+          <div class="job-item">
+            <div class="job-label">Completed</div>
+            <div class="job-value" id="sparkCompleted">--</div>
+          </div>
+          <div class="job-item">
+            <div class="job-label">Failed</div>
+            <div class="job-value" id="sparkFailed">--</div>
+          </div>
+        </div>
+        <div class="metric-sub" id="sparkState">Spark status: --</div>
+        <div class="metric-sub" style="margin-top:7px">Running apps:</div>
+        <ul class="job-list" id="sparkRunningList"></ul>
+        <div class="links">
+          <a class="link-pill" href="http://localhost:8081" target="_blank" rel="noreferrer">Open Spark Master UI</a>
+          <a class="link-pill" href="http://localhost:8091/api/spark-jobs" target="_blank" rel="noreferrer">Raw Spark JSON</a>
+        </div>
       </article>
     </section>
 
-    <section class="note" aria-label="Usage note">
-      Quick test flow:<br>
-      1) Insert into Postgres with <code>docker exec postgres psql -U app -d appdb -c "INSERT INTO demo.customers (customer_id, name, email) VALUES (31001, 'UI Demo', 'ui.demo@example.com');"</code><br>
-      2) Verify event in Kafka UI topic <code>pg.demo.customers</code><br>
-      3) Check new Delta objects under <code>datalake/delta/customers_cdc</code> in MinIO UI.
+    <section class="panel">
+      <h2 class="panel-title">Service Consoles</h2>
+      <div class="services-grid">
+        <article class="service-card">
+          <div class="service-head">
+            <div class="service-name">Kafka UI</div>
+            <span class="service-badge" id="badge-kafka-ui">--</span>
+          </div>
+          <div class="service-desc">Topics, partitions, and CDC messages browsing.</div>
+          <a class="service-open" href="http://localhost:8080" target="_blank" rel="noreferrer">Open Kafka UI</a>
+        </article>
+
+        <article class="service-card">
+          <div class="service-head">
+            <div class="service-name">Spark Master UI</div>
+            <span class="service-badge" id="badge-spark-master">--</span>
+          </div>
+          <div class="service-desc">Applications, workers, and scheduling state.</div>
+          <a class="service-open" href="http://localhost:8081" target="_blank" rel="noreferrer">Open Spark Master</a>
+        </article>
+
+        <article class="service-card">
+          <div class="service-head">
+            <div class="service-name">Spark Worker UI</div>
+            <span class="service-badge" id="badge-spark-worker">--</span>
+          </div>
+          <div class="service-desc">Executor resources and current worker load.</div>
+          <a class="service-open" href="http://localhost:8082" target="_blank" rel="noreferrer">Open Spark Worker</a>
+        </article>
+
+        <article class="service-card">
+          <div class="service-head">
+            <div class="service-name">MinIO Console</div>
+            <span class="service-badge" id="badge-minio">--</span>
+          </div>
+          <div class="service-desc">Bucket data lake and Delta files inspection.</div>
+          <a class="service-open" href="http://localhost:9001" target="_blank" rel="noreferrer">Open MinIO Console</a>
+        </article>
+
+        <article class="service-card">
+          <div class="service-head">
+            <div class="service-name">Kafka Connect API</div>
+            <span class="service-badge" id="badge-connect">--</span>
+          </div>
+          <div class="service-desc">Connector list, state, and runtime diagnostics.</div>
+          <a class="service-open" href="http://localhost:8083/connectors" target="_blank" rel="noreferrer">Open Connect API</a>
+        </article>
+      </div>
+      <div class="embed-note">Iframe embedding was removed because Kafka/Spark/MinIO block cross-origin frames via security headers.</div>
     </section>
   </div>
+
+  <script>
+    const API_BASE = "http://localhost:8091/api";
+    const REFRESH_MS = 8000;
+
+    const statusGrid = document.getElementById("statusGrid");
+    const lastUpdated = document.getElementById("lastUpdated");
+    const lagValue = document.getElementById("lagValue");
+    const lagState = document.getElementById("lagState");
+    const lagTopic = document.getElementById("lagTopic");
+    const lagGroup = document.getElementById("lagGroup");
+    const sparkActive = document.getElementById("sparkActive");
+    const sparkCompleted = document.getElementById("sparkCompleted");
+    const sparkFailed = document.getElementById("sparkFailed");
+    const sparkState = document.getElementById("sparkState");
+    const sparkRunningList = document.getElementById("sparkRunningList");
+    const generateBtn = document.getElementById("generateBtn");
+    const generateResult = document.getElementById("generateResult");
+
+    function formatLatency(latencyMs) {
+      if (latencyMs == null) return "n/a";
+      return `${latencyMs} ms`;
+    }
+
+    function setLastUpdated() {
+      lastUpdated.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+    }
+
+    function renderStatus(services) {
+      statusGrid.innerHTML = "";
+
+      services.forEach((service) => {
+        const card = document.createElement("article");
+        card.className = "status-card";
+
+        const dotClass = service.up ? "ok" : "bad";
+        const stateLabel = service.up ? "UP" : "DOWN";
+        const codeLabel = service.statusCode == null ? "-" : service.statusCode;
+
+        card.innerHTML = `
+          <div class="status-line">
+            <span class="dot ${dotClass}"></span>
+            <span>${service.name}</span>
+          </div>
+          <div class="status-meta">
+            <span>${stateLabel}</span>
+            <span>HTTP ${codeLabel}</span>
+          </div>
+          <div class="status-meta" style="margin-top:4px">
+            <span>Latency</span>
+            <span>${formatLatency(service.latencyMs)}</span>
+          </div>
+        `;
+
+        statusGrid.appendChild(card);
+      });
+
+      services.forEach((service) => {
+        const badge = document.getElementById(`badge-${service.id}`);
+        if (!badge) return;
+
+        badge.textContent = service.up ? "UP" : "DOWN";
+        badge.classList.remove("ok", "bad");
+        badge.classList.add(service.up ? "ok" : "bad");
+      });
+    }
+
+    async function refreshStatus() {
+      try {
+        const response = await fetch(`${API_BASE}/status`);
+        if (!response.ok) throw new Error("status api failed");
+        const data = await response.json();
+        renderStatus(data.services || []);
+      } catch (_err) {
+        statusGrid.innerHTML = '<div class="status-card">Status API unavailable. Check dashboard-api container.</div>';
+      }
+    }
+
+    async function refreshLag() {
+      try {
+        const response = await fetch(`${API_BASE}/kafka-lag`);
+        if (!response.ok) throw new Error("lag api failed");
+        const data = await response.json();
+
+        lagTopic.textContent = data.topic || "pg.demo.customers";
+        lagGroup.textContent = data.groupId || "cdc-consumer-live";
+        lagValue.textContent = String(data.totalLag ?? 0);
+
+        if ((data.totalLag ?? 0) === 0) {
+          lagState.textContent = "Healthy: no backlog";
+          lagValue.style.color = "#86efac";
+        } else if (data.totalLag < 50) {
+          lagState.textContent = "Notice: small backlog";
+          lagValue.style.color = "#fde68a";
+        } else {
+          lagState.textContent = "Warning: high backlog";
+          lagValue.style.color = "#fca5a5";
+        }
+      } catch (_err) {
+        lagValue.textContent = "--";
+        lagValue.style.color = "#fca5a5";
+        lagState.textContent = "Kafka lag API unavailable";
+      }
+    }
+
+    async function refreshSparkJobs() {
+      try {
+        const response = await fetch(`${API_BASE}/spark-jobs`);
+        if (!response.ok) throw new Error("spark jobs api failed");
+        const data = await response.json();
+
+        sparkActive.textContent = String(data.active ?? 0);
+        sparkCompleted.textContent = String(data.completed ?? 0);
+        sparkFailed.textContent = String(data.failed ?? 0);
+        sparkState.textContent = `Spark status: ${data.sparkStatus || "UNKNOWN"}`;
+
+        sparkRunningList.innerHTML = "";
+        const apps = data.runningApps || [];
+
+        if (!apps.length) {
+          const item = document.createElement("li");
+          item.textContent = "No active Spark applications";
+          sparkRunningList.appendChild(item);
+          return;
+        }
+
+        apps.forEach((app) => {
+          const item = document.createElement("li");
+          item.textContent = `${app.name} (${app.state})`;
+          sparkRunningList.appendChild(item);
+        });
+      } catch (_err) {
+        sparkActive.textContent = "--";
+        sparkCompleted.textContent = "--";
+        sparkFailed.textContent = "--";
+        sparkState.textContent = "Spark status API unavailable";
+        sparkRunningList.innerHTML = "<li>Unable to load Spark apps</li>";
+      }
+    }
+
+    async function generateData() {
+      generateBtn.disabled = true;
+      generateResult.classList.remove("ok", "err");
+      generateResult.textContent = "Generating new row in PostgreSQL...";
+
+      try {
+        const response = await fetch(`${API_BASE}/generate-data`, { method: "POST" });
+        if (!response.ok) throw new Error("generate api failed");
+
+        const data = await response.json();
+        const row = data.inserted;
+        generateResult.classList.add("ok");
+        generateResult.textContent = `Inserted customer_id=${row.customer_id}. Now watch Kafka topic pg.demo.customers and Delta output for this id.`;
+
+        // Trigger immediate refresh to show lag and statuses updated sooner.
+        await Promise.all([refreshStatus(), refreshLag(), refreshSparkJobs()]);
+        setLastUpdated();
+      } catch (_err) {
+        generateResult.classList.add("err");
+        generateResult.textContent = "Generate failed. Check dashboard-api logs and DB connectivity.";
+      } finally {
+        generateBtn.disabled = false;
+      }
+    }
+
+    async function tick() {
+      await Promise.all([refreshStatus(), refreshLag(), refreshSparkJobs()]);
+      setLastUpdated();
+    }
+
+    tick();
+    setInterval(tick, REFRESH_MS);
+    generateBtn.addEventListener("click", generateData);
+  </script>
 </body>
 </html>

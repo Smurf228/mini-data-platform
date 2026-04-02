@@ -83,6 +83,7 @@ services:
     image: nginx:alpine
     container_name: dashboard
     depends_on:
+      - dashboard-api
       - kafka-ui
       - spark-master
       - minio
@@ -92,6 +93,33 @@ services:
       - "8090:80"
     volumes:
       - ./dashboard/index.html:/usr/share/nginx/html/index.html:ro
+    networks:
+      - platform_net
+
+  dashboard-api:
+    build:
+      context: ./dashboard-api
+    container_name: dashboard-api
+    depends_on:
+      - kafka
+      - kafka-ui
+      - spark-master
+      - spark-worker
+      - minio
+      - connect
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    environment:
+      PORT: 8091
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: pg.demo.customers
+      KAFKA_GROUP: cdc-consumer-live
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: appdb
+      DB_USER: app
+      DB_PASSWORD: root
     networks:
       - platform_net
 
