@@ -75,13 +75,15 @@ docker compose up -d
 docker ps
 ```
 
+`connect-init` auto-registers `pg-customers-connector` during startup, so manual connector creation is usually not needed.
+
 ### 2) Ensure Debezium connector exists
 
 ```powershell
 Invoke-RestMethod -Method Get -Uri http://localhost:8083/connectors
 ```
 
-If `pg-customers-connector` is missing:
+If `pg-customers-connector` is still missing:
 
 ```powershell
 $body = Get-Content postgres-connector.json -Raw

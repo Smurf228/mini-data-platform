@@ -65,6 +65,35 @@ services:
     networks:
       - platform_net
 
+  connect-init:
+    image: curlimages/curl:8.7.1
+    container_name: connect-init
+    depends_on:
+      - connect
+    restart: "no"
+    volumes:
+      - ./postgres-connector.json:/config/postgres-connector.json:ro
+    entrypoint: >
+      /bin/sh -c "
+      until curl -s http://connect:8083/connectors >/dev/null; do sleep 2; done;
+      if curl -sf http://connect:8083/connectors/pg-customers-connector >/dev/null; then
+        echo 'Connector already exists';
+      else
+        i=0;
+        until [ $$i -ge 15 ]; do
+          code=$$(curl -s -o /dev/null -w '%{http_code}' -X POST http://connect:8083/connectors -H 'Content-Type: application/json' --data @/config/postgres-connector.json);
+          if [ \"$$code\" = \"201\" ] || [ \"$$code\" = \"409\" ]; then
+            echo 'Connector created';
+            break;
+          fi;
+          i=$$((i+1));
+          sleep 2;
+        done;
+      fi;
+      "
+    networks:
+      - platform_net
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
