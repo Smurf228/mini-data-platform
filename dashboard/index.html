@@ -350,6 +350,39 @@
       padding-top: 8px;
     }
 
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 10px;
+      background: rgba(2, 6, 23, 0.5);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 620px;
+    }
+
+    th,
+    td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+      font-size: .82rem;
+    }
+
+    th {
+      color: #bae6fd;
+      background: rgba(8, 47, 73, 0.35);
+      font-weight: 700;
+    }
+
+    .table-meta {
+      color: var(--muted);
+      font-size: .82rem;
+      margin: 8px 0;
+    }
+
     .pipeline {
       display: flex;
       flex-wrap: wrap;
@@ -512,6 +545,31 @@
       </div>
       <div class="embed-note">Iframe embedding was removed because Kafka/Spark/MinIO block cross-origin frames via security headers.</div>
     </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Delta Preview Table (from MinIO)</h2>
+      <div class="actions" style="margin-top:0">
+        <button class="btn-generate" id="refreshDeltaBtn" type="button">Refresh Delta Preview</button>
+        <a class="link-pill" href="http://localhost:9001" target="_blank" rel="noreferrer">Open MinIO Console</a>
+        <a class="link-pill" href="http://localhost:8091/api/delta-preview" target="_blank" rel="noreferrer">Raw Preview JSON</a>
+      </div>
+      <div class="table-meta" id="deltaMeta">Rows: --</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>customer_id</th>
+              <th>name</th>
+              <th>email</th>
+              <th>ingested_at</th>
+            </tr>
+          </thead>
+          <tbody id="deltaTableBody">
+            <tr><td colspan="4">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
   <script>
@@ -531,6 +589,9 @@
     const sparkRunningList = document.getElementById("sparkRunningList");
     const generateBtn = document.getElementById("generateBtn");
     const generateResult = document.getElementById("generateResult");
+    const refreshDeltaBtn = document.getElementById("refreshDeltaBtn");
+    const deltaMeta = document.getElementById("deltaMeta");
+    const deltaTableBody = document.getElementById("deltaTableBody");
 
     function formatLatency(latencyMs) {
       if (latencyMs == null) return "n/a";
@@ -668,13 +729,49 @@
         generateResult.textContent = `Inserted customer_id=${row.customer_id}. Now watch Kafka topic pg.demo.customers and Delta output for this id.`;
 
         // Trigger immediate refresh to show lag and statuses updated sooner.
-        await Promise.all([refreshStatus(), refreshLag(), refreshSparkJobs()]);
+        await Promise.all([refreshStatus(), refreshLag(), refreshSparkJobs(), refreshDeltaPreview()]);
         setLastUpdated();
       } catch (_err) {
         generateResult.classList.add("err");
         generateResult.textContent = "Generate failed. Check dashboard-api logs and DB connectivity.";
       } finally {
         generateBtn.disabled = false;
+      }
+    }
+
+    async function refreshDeltaPreview() {
+      refreshDeltaBtn.disabled = true;
+      deltaMeta.textContent = "Rows: loading...";
+
+      try {
+        const response = await fetch(`${API_BASE}/delta-preview?limit=20`);
+        if (!response.ok) throw new Error("delta preview api failed");
+        const data = await response.json();
+        const rows = data.rows || [];
+
+        deltaMeta.textContent = `Rows: ${data.rowCount ?? rows.length}`;
+        deltaTableBody.innerHTML = "";
+
+        if (!rows.length) {
+          deltaTableBody.innerHTML = '<tr><td colspan="4">No rows found in Delta files yet.</td></tr>';
+          return;
+        }
+
+        rows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${row.customer_id ?? ""}</td>
+            <td>${row.name ?? ""}</td>
+            <td>${row.email ?? ""}</td>
+            <td>${row.ingested_at ?? ""}</td>
+          `;
+          deltaTableBody.appendChild(tr);
+        });
+      } catch (_err) {
+        deltaMeta.textContent = "Rows: error";
+        deltaTableBody.innerHTML = '<tr><td colspan="4">Failed to load Delta preview. Check dashboard-api logs.</td></tr>';
+      } finally {
+        refreshDeltaBtn.disabled = false;
       }
     }
 
@@ -686,6 +783,8 @@
     tick();
     setInterval(tick, REFRESH_MS);
     generateBtn.addEventListener("click", generateData);
+    refreshDeltaBtn.addEventListener("click", refreshDeltaPreview);
+    refreshDeltaPreview();
   </script>
 </body>
 </html>

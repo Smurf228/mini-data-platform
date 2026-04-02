@@ -120,6 +120,12 @@ services:
       DB_NAME: appdb
       DB_USER: app
       DB_PASSWORD: root
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: miniodata123
+      MINIO_BUCKET: datalake
+      DELTA_PREFIX: delta/customers_cdc
     networks:
       - platform_net
 
