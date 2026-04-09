@@ -38,7 +38,6 @@ spark.sparkContext.setLogLevel("WARN")
 df = (
     spark.readStream.format("kafka")
     .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS)
-    # Pattern subscription avoids startup failure if CDC topic appears later.
     .option("subscribePattern", KAFKA_TOPIC_PATTERN)
     .option("startingOffsets", STARTING_OFFSETS)
     .option("failOnDataLoss", "false")
