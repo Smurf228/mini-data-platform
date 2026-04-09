@@ -34,7 +34,7 @@ Not implemented yet:
 
 ## Quick Start
 
-### Automated Deploy (Task 6)
+### Automated Deploy
 
 One command deployment:
 
